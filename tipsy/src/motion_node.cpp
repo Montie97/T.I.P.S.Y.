@@ -3,6 +3,7 @@
 #include <actionlib/client/simple_action_client.h>
 #include <actionlib/client/terminal_state.h>
 #include <move_base_msgs/MoveBaseAction.h>
+#include <tipsy/Coordinates.h>
 
 // create the action client
 // true causes the client to spin its own thread
