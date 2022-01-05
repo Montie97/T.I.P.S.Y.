@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_tutorials
   actionlib_msgs
   message_generation
+  rosprolog
 )
 
 ## System dependencies are found with CMake's conventions
@@ -57,11 +58,10 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+   FILES
+   DrinkOrder.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -106,11 +106,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES tipsy
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+  INCLUDE_DIRS include
+  LIBRARIES tipsy
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime rosprolog
 #  DEPENDS system_lib
-	CATKIN_DEPENDS message_runtime
 )
 
 ###########
@@ -122,11 +121,17 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  include
+  src/
 )
 
 # include all c++ files
-# file(GLOB SRC_HELPERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} 
-#        src/*.cpp)
+file(GLOB SRC_HELPERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} 
+        src/*.cpp)
+
+# include the headers of the library
+file(GLOB_RECURSE ONTO_INC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+        src/*.hpp include/*.h)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -142,6 +147,14 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(motion_node src/motion_node.cpp)
+
+add_executable(drink_to_table src/drink_to_table.cpp)
+add_dependencies(drink_to_table ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(drink_to_table  ${catkin_LIBRARIES})
+
+add_executable(table_to_coordinates src/table_to_coordinates.cpp)
+add_dependencies(table_to_coordinates ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(table_to_coordinates  ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
