@@ -10,7 +10,7 @@
 - rosrun tipsy motion_node
 ### Opening the world
 - roscore
-- rosrun gazebo_ros gazebo /home/user/simulation_ws/src/tiago_simulation/tiago_gazebo/worlds/project.world
+- rosrun gazebo_ros gazebo /home/user/simulation_ws/src/tiago_simulation/tiago_gazebo/worlds/bar.world
 ### Manual control
 - rosrun key_teleop key_teleop.py
 ## Useful Git commands:
