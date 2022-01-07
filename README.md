@@ -5,7 +5,7 @@
 - roscd tiago_gazebo/models
 - grep -RiIl 'sdf' | xargs sed -i 's/package/model/g'
 ### Spawning Tiago in the world equipped with the map
-- roslaunch tiago_2dnav_gazebo tiago_navigation.launch public_sim:=true lost:=true world:=project map:=/home/user/catkin_ws/src/tipsy/tipsy_map/
+- roslaunch tiago_2dnav_gazebo tiago_navigation.launch public_sim:=true lost:=true world:=bar map:=/home/user/catkin_ws/src/tipsy/tipsy_map/ gzpose:="-x 0.0  -y   0.0 -z  0.0   -R 0.0 -P 0.0 -Y  0.0"
 ### Launching the motion node in the tipsy package
 - rosrun tipsy motion_node
 ### Opening the world
