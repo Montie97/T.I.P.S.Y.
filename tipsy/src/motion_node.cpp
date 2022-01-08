@@ -27,23 +27,12 @@
 #define ARM_FRONT 1.57
 #define ARM_SIDE 0.0
 
-// Our Action interface type for moving TIAGo's head, provided as a typedef for convenience
+ros::Time last_timestamp;
+
+/*** ARM ***/
+
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> arm_control_client;
 typedef boost::shared_ptr< arm_control_client>  arm_control_client_Ptr;
-
-//for torso
-typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> torso_control_client;
-typedef boost::shared_ptr< torso_control_client>  torso_control_client_Ptr;
-
-//for head
-typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> head_control_client;
-typedef boost::shared_ptr< head_control_client>  head_control_client_Ptr;
-
-//for gripper  
-typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> gripper_control_client;
-typedef boost::shared_ptr< gripper_control_client>  gripper_control_client_Ptr;
-
-ros::Time last_timestamp;
 
 void createArmClient(arm_control_client_Ptr& actionClient)
 {
@@ -59,83 +48,6 @@ void createArmClient(arm_control_client_Ptr& actionClient)
 
     if ( iterations == max_iterations )
     throw std::runtime_error("Error in createArmClient: arm controller action server not available");
-}
-
-//gripper
-void createGripperClient(gripper_control_client_Ptr& actionClient)
-{
-    ROS_INFO("Creating action client to gripper controller ...");
-
-    actionClient.reset( new gripper_control_client("gripper_controller/follow_joint_trajectory") );
-
-    int iterations = 0, max_iterations = 3;
-    // Wait for arm controller action server to come up
-    while( !actionClient->waitForServer(ros::Duration(2.0)) && ros::ok() && iterations < max_iterations )
-    {
-    ROS_DEBUG("Waiting for the gripper_controller_action server to come up");
-    ++iterations;
-    }
-    if ( iterations == max_iterations )
-    throw std::runtime_error("Error in createGripperClient: gripper controller action server not available");
-}
-
-//torso
-void createTorsoClient(torso_control_client_Ptr& actionClient)
-{
-    ROS_INFO("Creating action client to torso controller ...");
-    actionClient.reset( new torso_control_client("/torso_controller/follow_joint_trajectory") );
-    int iterations = 0, max_iterations = 3;
-    // Wait for arm controller action server to come up
-    while( !actionClient->waitForServer(ros::Duration(2.0)) && ros::ok() && iterations < max_iterations )
-    {
-    ROS_DEBUG("Waiting for the torso_controller_action server to come up");
-    ++iterations;
-    }
-
-    if ( iterations == max_iterations )
-    throw std::runtime_error("Error in createTorsoClient: torso controller action server not available");
-}
-
-//head
-void createHeadClient(head_control_client_Ptr& actionClient)
-{
-    ROS_INFO("Creating action client to head controller ...");
-    actionClient.reset( new head_control_client("/head_controller/follow_joint_trajectory") );
-    int iterations = 0, max_iterations = 3;
-    // Wait for arm controller action server to come up
-    while( !actionClient->waitForServer(ros::Duration(2.0)) && ros::ok() && iterations < max_iterations )
-    {
-    ROS_DEBUG("Waiting for the head_controller_action server to come up");
-    ++iterations;
-    }
-
-    if ( iterations == max_iterations )
-    throw std::runtime_error("Error in createHeadClient: head controller action server not available");
-}
-
-//gripper 
-void waypoints_gripper_goal(control_msgs::FollowJointTrajectoryGoal& goal, float gripper_pos)
-{
-    // The joint names, which apply to all waypoints
-    goal.trajectory.joint_names.push_back("gripper_left_finger_joint");
-    goal.trajectory.joint_names.push_back("gripper_right_finger_joint");
-
-    // One waypoint in this goal trajectory
-    goal.trajectory.points.resize(1);
-
-    // First trajectory point
-    // Positions
-    int index = 0;
-    goal.trajectory.points[index].positions.resize(2);
-    goal.trajectory.points[index].positions[0] =  gripper_pos;
-    goal.trajectory.points[index].positions[1] =  gripper_pos;
-    // Velocities
-    goal.trajectory.points[index].velocities.resize(2);
-    goal.trajectory.points[index].velocities[0] = 0.0;
-    goal.trajectory.points[index].velocities[1] = 0.0;
-
-    // To be reached 2 second after starting along the trajectory
-    goal.trajectory.points[index].time_from_start = ros::Duration(3.0);
 }
 
 // Generates a simple trajectory with two waypoints to move TIAGo's arm 
@@ -205,7 +117,63 @@ void waypoints_arm_goal2(control_msgs::FollowJointTrajectoryGoal& goal, float ar
     goal.trajectory.points[index].time_from_start = ros::Duration(3.0);
 }
 
-//torso 
+void arm_grabbing_position(float arm_pos)
+{
+    // Create an arm controller action client to move the TIAGo's arm
+    arm_control_client_Ptr ArmClient;
+    createArmClient(ArmClient);
+    // Generates the goal for the TIAGo's arm
+    control_msgs::FollowJointTrajectoryGoal arm_goal2;
+    waypoints_arm_goal2(arm_goal2, arm_pos);
+    // Sends the command to start the given trajectory 1s from now
+    arm_goal2.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
+    ArmClient->sendGoal(arm_goal2);
+    // Wait for trajectory execution
+    while(!(ArmClient->getState().isDone()) && ros::ok())
+    {
+        ros::Duration(1).sleep(); // sleep for four seconds
+    }
+}
+
+void raise_arm()
+{
+    // Create an arm controller action client to move the TIAGo's arm
+    arm_control_client_Ptr ArmClient;
+    createArmClient(ArmClient);
+    // Generates the goal for the TIAGo's arm
+    control_msgs::FollowJointTrajectoryGoal arm_goal1;
+    waypoints_arm_goal1(arm_goal1);
+    // Sends the command to start the given trajectory 1s from now
+    arm_goal1.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
+    ArmClient->sendGoal(arm_goal1);
+    // Wait for trajectory execution
+    while(!(ArmClient->getState().isDone()) && ros::ok())
+    {
+        ros::Duration(1).sleep(); // sleep for four seconds
+    }
+}
+
+/*** TORSO ***/
+
+typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> torso_control_client;
+typedef boost::shared_ptr< torso_control_client>  torso_control_client_Ptr;
+
+void createTorsoClient(torso_control_client_Ptr& actionClient)
+{
+    ROS_INFO("Creating action client to torso controller ...");
+    actionClient.reset( new torso_control_client("/torso_controller/follow_joint_trajectory") );
+    int iterations = 0, max_iterations = 3;
+    // Wait for arm controller action server to come up
+    while( !actionClient->waitForServer(ros::Duration(2.0)) && ros::ok() && iterations < max_iterations )
+    {
+    ROS_DEBUG("Waiting for the torso_controller_action server to come up");
+    ++iterations;
+    }
+
+    if ( iterations == max_iterations )
+    throw std::runtime_error("Error in createTorsoClient: torso controller action server not available");
+}
+
 void waypoints_torso_goal(control_msgs::FollowJointTrajectoryGoal& goal, float torso_position)
 {
     // The joint names, which apply to all waypoints
@@ -225,20 +193,61 @@ void waypoints_torso_goal(control_msgs::FollowJointTrajectoryGoal& goal, float t
     goal.trajectory.points[index].time_from_start = ros::Duration(2.0);
 }
 
-//head 
-void waypoints_head_goal(control_msgs::FollowJointTrajectoryGoal& goal)
+void move_torso(float torso_position)
+{
+    // Create an torso controller action 
+    torso_control_client_Ptr TorsoClient;
+    createTorsoClient(TorsoClient);
+    // Generates the goal for the TIAGo's arm
+    control_msgs::FollowJointTrajectoryGoal torso_goal;
+    waypoints_torso_goal(torso_goal, torso_position);
+    // Sends the command to start the given trajectory 1s from now
+    torso_goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
+    TorsoClient->sendGoal(torso_goal);
+    // Wait for trajectory execution
+    while(!(TorsoClient->getState().isDone()) && ros::ok())
+    {
+        ros::Duration(1).sleep(); // sleep for four seconds
+    }
+}
+
+/*** GRIPPER ***/
+
+typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> gripper_control_client;
+typedef boost::shared_ptr< gripper_control_client>  gripper_control_client_Ptr;
+
+void createGripperClient(gripper_control_client_Ptr& actionClient)
+{
+    ROS_INFO("Creating action client to gripper controller ...");
+
+    actionClient.reset( new gripper_control_client("gripper_controller/follow_joint_trajectory") );
+
+    int iterations = 0, max_iterations = 3;
+    // Wait for arm controller action server to come up
+    while( !actionClient->waitForServer(ros::Duration(2.0)) && ros::ok() && iterations < max_iterations )
+    {
+    ROS_DEBUG("Waiting for the gripper_controller_action server to come up");
+    ++iterations;
+    }
+    if ( iterations == max_iterations )
+    throw std::runtime_error("Error in createGripperClient: gripper controller action server not available");
+}
+ 
+void waypoints_gripper_goal(control_msgs::FollowJointTrajectoryGoal& goal, float gripper_pos)
 {
     // The joint names, which apply to all waypoints
-    goal.trajectory.joint_names.push_back("head_1_joint");
-    goal.trajectory.joint_names.push_back("head_2_joint");
+    goal.trajectory.joint_names.push_back("gripper_left_finger_joint");
+    goal.trajectory.joint_names.push_back("gripper_right_finger_joint");
+
     // One waypoint in this goal trajectory
     goal.trajectory.points.resize(1);
+
     // First trajectory point
     // Positions
     int index = 0;
     goal.trajectory.points[index].positions.resize(2);
-    goal.trajectory.points[index].positions[0] =  0.0;
-    goal.trajectory.points[index].positions[1] =  -0.45;
+    goal.trajectory.points[index].positions[0] =  gripper_pos;
+    goal.trajectory.points[index].positions[1] =  gripper_pos;
     // Velocities
     goal.trajectory.points[index].velocities.resize(2);
     goal.trajectory.points[index].velocities[0] = 0.0;
@@ -265,6 +274,69 @@ void move_gripper(float gripper_pos)
         ros::Duration(1).sleep(); // sleep for four seconds
     }
 }
+
+/*** HEAD ***/
+
+typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> head_control_client;
+typedef boost::shared_ptr< head_control_client>  head_control_client_Ptr;
+
+void createHeadClient(head_control_client_Ptr& actionClient)
+{
+    ROS_INFO("Creating action client to head controller ...");
+    actionClient.reset( new head_control_client("/head_controller/follow_joint_trajectory") );
+    int iterations = 0, max_iterations = 3;
+    // Wait for arm controller action server to come up
+    while( !actionClient->waitForServer(ros::Duration(2.0)) && ros::ok() && iterations < max_iterations )
+    {
+    ROS_DEBUG("Waiting for the head_controller_action server to come up");
+    ++iterations;
+    }
+
+    if ( iterations == max_iterations )
+    throw std::runtime_error("Error in createHeadClient: head controller action server not available");
+}
+
+void waypoints_head_goal(control_msgs::FollowJointTrajectoryGoal& goal)
+{
+    // The joint names, which apply to all waypoints
+    goal.trajectory.joint_names.push_back("head_1_joint");
+    goal.trajectory.joint_names.push_back("head_2_joint");
+    // One waypoint in this goal trajectory
+    goal.trajectory.points.resize(1);
+    // First trajectory point
+    // Positions
+    int index = 0;
+    goal.trajectory.points[index].positions.resize(2);
+    goal.trajectory.points[index].positions[0] =  0.0;
+    goal.trajectory.points[index].positions[1] =  -0.45;
+    // Velocities
+    goal.trajectory.points[index].velocities.resize(2);
+    goal.trajectory.points[index].velocities[0] = 0.0;
+    goal.trajectory.points[index].velocities[1] = 0.0;
+
+    // To be reached 2 second after starting along the trajectory
+    goal.trajectory.points[index].time_from_start = ros::Duration(3.0);
+}
+
+void eyes_on_the_prize()
+{
+    // Create an head controller action 
+    head_control_client_Ptr HeadClient;
+    createHeadClient(HeadClient);
+    // Generates the goal for the TIAGo's arm
+    control_msgs::FollowJointTrajectoryGoal head_goal;
+    waypoints_head_goal(head_goal);
+    // Sends the command to start the given trajectory 1s from now
+    head_goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
+    HeadClient->sendGoal(head_goal);
+    // Wait for trajectory execution
+    while(!(HeadClient->getState().isDone()) && ros::ok())
+    {
+        ros::Duration(1).sleep(); // sleep for four seconds
+    }
+}
+
+/*** MOVEMENT ***/
 
 void move_to_goal(tipsy::Coordinates coord, bool serving)
 {
@@ -306,94 +378,7 @@ void move_to_goal(tipsy::Coordinates coord, bool serving)
         ROS_INFO("Movement failed.");
 }
 
-// I probably won't need this
-void send_ack()
-{
-    ros::NodeHandle n; // SHOULD I DO THIS?
-    ros::Rate loop_rate(1); // AND THIS?
-    tipsy::MovementStatus move_status;
-    move_status.finished = true;
-    ros::Publisher ack_pub = n.advertise<tipsy::Coordinates>("ack_topic", 10);
-    while (ros::ok()) {
-        ack_pub.publish(move_status);
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-}
-
-void move_torso(float torso_position)
-{
-    // Create an torso controller action 
-    torso_control_client_Ptr TorsoClient;
-    createTorsoClient(TorsoClient);
-    // Generates the goal for the TIAGo's arm
-    control_msgs::FollowJointTrajectoryGoal torso_goal;
-    waypoints_torso_goal(torso_goal, torso_position);
-    // Sends the command to start the given trajectory 1s from now
-    torso_goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
-    TorsoClient->sendGoal(torso_goal);
-    // Wait for trajectory execution
-    while(!(TorsoClient->getState().isDone()) && ros::ok())
-    {
-        ros::Duration(1).sleep(); // sleep for four seconds
-    }
-}
-
-void eyes_on_the_prize()
-{
-    // Create an head controller action 
-    head_control_client_Ptr HeadClient;
-    createHeadClient(HeadClient);
-    // Generates the goal for the TIAGo's arm
-    control_msgs::FollowJointTrajectoryGoal head_goal;
-    waypoints_head_goal(head_goal);
-    // Sends the command to start the given trajectory 1s from now
-    head_goal.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
-    HeadClient->sendGoal(head_goal);
-    // Wait for trajectory execution
-    while(!(HeadClient->getState().isDone()) && ros::ok())
-    {
-        ros::Duration(1).sleep(); // sleep for four seconds
-    }
-}
-
-void arm_grabbing_position(float arm_pos)
-{
-    // Create an arm controller action client to move the TIAGo's arm
-    arm_control_client_Ptr ArmClient;
-    createArmClient(ArmClient);
-    // Generates the goal for the TIAGo's arm
-    control_msgs::FollowJointTrajectoryGoal arm_goal2;
-    waypoints_arm_goal2(arm_goal2, arm_pos);
-    // Sends the command to start the given trajectory 1s from now
-    arm_goal2.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
-    ArmClient->sendGoal(arm_goal2);
-    // Wait for trajectory execution
-    while(!(ArmClient->getState().isDone()) && ros::ok())
-    {
-        ros::Duration(1).sleep(); // sleep for four seconds
-    }
-}
-
-void raise_arm()
-{
-    // Create an arm controller action client to move the TIAGo's arm
-    arm_control_client_Ptr ArmClient;
-    createArmClient(ArmClient);
-    // Generates the goal for the TIAGo's arm
-    control_msgs::FollowJointTrajectoryGoal arm_goal1;
-    waypoints_arm_goal1(arm_goal1);
-    // Sends the command to start the given trajectory 1s from now
-    arm_goal1.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
-    ArmClient->sendGoal(arm_goal1);
-    // Wait for trajectory execution
-    while(!(ArmClient->getState().isDone()) && ros::ok())
-    {
-        ros::Duration(1).sleep(); // sleep for four seconds
-    }
-}
-
-// CALLBACK FUNCTION
+/*** CALLBACK FUNCTION ***/
 void serve_drink(const tipsy::Coordinates::ConstPtr &p_coord) 
 {  
     tipsy::Coordinates coords;
@@ -420,6 +405,7 @@ void serve_drink(const tipsy::Coordinates::ConstPtr &p_coord)
         move_to_goal(coords, serving);
         move_torso(HIGH_TORSO);
         arm_grabbing_position(ARM_FRONT);
+        move_torso(MID_TORSO);
         move_gripper(GRIPPER_OPEN);
     }
 }
