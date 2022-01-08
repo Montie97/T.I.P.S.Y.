@@ -32,25 +32,21 @@ int main(int argc, char **argv) {
     if (table_number == "1") {
       coordinate.x = -0.68;
       coordinate.y = -2.17;
-      coordinate.Y = 3.14;
     }
 
     if (table_number == "2") {
       coordinate.x = -0.68;
       coordinate.y = -1.03;
-      coordinate.Y = 3.14;
     }
 
     if (table_number == "3") {
       coordinate.x = -0.68;
       coordinate.y = 1.17;
-      coordinate.Y = 3.14;
     }
 
     if (table_number == "4") {
       coordinate.x = -0.68;
       coordinate.y = 2.13;
-      coordinate.Y = 3.14;
     }
     coordinate.timestamp = ros::Time::now();
   } else {
