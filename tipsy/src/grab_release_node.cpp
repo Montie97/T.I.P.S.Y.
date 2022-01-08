@@ -31,7 +31,7 @@ typedef boost::shared_ptr< torso_control_client>  torso_control_client_Ptr;
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> head_control_client;
 typedef boost::shared_ptr< head_control_client>  head_control_client_Ptr;
 
-//for head
+//for gripper  
 typedef actionlib::SimpleActionClient<control_msgs::FollowJointTrajectoryAction> gripper_control_client;
 typedef boost::shared_ptr< gripper_control_client>  gripper_control_client_Ptr;
 
@@ -98,7 +98,7 @@ void createGripperClient(gripper_control_client_Ptr& actionClient)
 {
   ROS_INFO("Creating action client to gripper controller ...");
 
-  actionClient.reset( new gripper_control_client("/parallel_gripper_controller/follow_joint_trajectory") );
+  actionClient.reset( new gripper_control_client("gripper_controller/follow_joint_trajectory") );
 
   int iterations = 0, max_iterations = 3;
  // Wait for arm controller action server to come up
@@ -277,6 +277,29 @@ void waypoints_gripper_goal(control_msgs::FollowJointTrajectoryGoal& goal)
   // To be reached 2 second after starting along the trajectory
   goal.trajectory.points[index].time_from_start = ros::Duration(3.0);
 }
+void waypoints_gripper_goal2(control_msgs::FollowJointTrajectoryGoal& goal)
+{
+  // The joint names, which apply to all waypoints
+  goal.trajectory.joint_names.push_back("gripper_left_finger_joint");
+  goal.trajectory.joint_names.push_back("gripper_right_finger_joint");
+
+  // One waypoint in this goal trajectory
+  goal.trajectory.points.resize(1);
+
+  // First trajectory point
+  // Positions
+  int index = 0;
+  goal.trajectory.points[index].positions.resize(2);
+  goal.trajectory.points[index].positions[0] =  1.0;
+  goal.trajectory.points[index].positions[1] =  1.0;
+  // Velocities
+  goal.trajectory.points[index].velocities.resize(2);
+  goal.trajectory.points[index].velocities[0] = 0.0;
+  goal.trajectory.points[index].velocities[1] = 0.0;
+  
+  // To be reached 2 second after starting along the trajectory
+  goal.trajectory.points[index].time_from_start = ros::Duration(3.0);
+}
 
 ////////////////////////////////////////////////
 /////////////////// G O A L  ///////////////////
@@ -362,7 +385,7 @@ void grabbingPosition()
     // Create an gripper controller action 
     gripper_control_client_Ptr GripperClient;
     createGripperClient(GripperClient);
-    /* Generates the goal for the TIAGo's arm
+    // Generates the goal for the TIAGo's arm
     control_msgs::FollowJointTrajectoryGoal gripper_goal;
     waypoints_gripper_goal(gripper_goal);
     // Sends the command to start the given trajectory 1s from now
@@ -372,7 +395,22 @@ void grabbingPosition()
     while(!(GripperClient->getState().isDone()) && ros::ok())
     {
         ros::Duration(1).sleep(); // sleep for four seconds
-    }*/
+    }
+    // step 7: gripper RELEAAAAAAASE ME  
+    // Create an gripper controller action 
+    //gripper_control_client_Ptr GripperClient;
+    //createGripperClient(GripperClient);
+    // Generates the goal for the TIAGo's arm
+    control_msgs::FollowJointTrajectoryGoal gripper_goal2;
+    waypoints_gripper_goal2(gripper_goal2);
+    // Sends the command to start the given trajectory 1s from now
+    gripper_goal2.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
+    GripperClient->sendGoal(gripper_goal2);
+    // Wait for trajectory execution
+    while(!(GripperClient->getState().isDone()) && ros::ok())
+    {
+        ros::Duration(1).sleep(); // sleep for four seconds
+    }
     return;
 }
 ////////////////////////////////////////////////
@@ -381,8 +419,6 @@ void grabbingPosition()
 void callbackSubs (const tipsy::StartMsg::ConstPtr &msg) 
 {
     auto bob = msg->okToStart;
-    ROS_INFO("On arrive là");
-
     switch(bob)
     {
         case 1:
