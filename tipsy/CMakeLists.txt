@@ -55,6 +55,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
    FILES
    Coordinates.msg
+   MovementStatus.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -106,7 +107,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
+#  INCLUDE_DIRS include
   LIBRARIES tipsy
   CATKIN_DEPENDS roscpp rospy std_msgs message_runtime rosprolog
 #  DEPENDS system_lib
