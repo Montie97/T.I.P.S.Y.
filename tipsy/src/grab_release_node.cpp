@@ -38,7 +38,7 @@ typedef boost::shared_ptr< gripper_control_client>  gripper_control_client_Ptr;
 ////////////////////////////////////////////////
 ///// A C T I O N  C L I E N T  ////////////////
 
-/*arm
+//arm
 void createArmClient(arm_control_client_Ptr& actionClient)
 {
   ROS_INFO("Creating action client to arm controller ...");
@@ -92,7 +92,7 @@ void createHeadClient(head_control_client_Ptr& actionClient)
  
   if ( iterations == max_iterations )
     throw std::runtime_error("Error in createHeadClient: head controller action server not available");
-}*/
+}
 //gripper
 void createGripperClient(gripper_control_client_Ptr& actionClient)
 {
@@ -115,7 +115,7 @@ void createGripperClient(gripper_control_client_Ptr& actionClient)
 ////////////////////////////////////////////////
 /////////////////// G O A L  ///////////////////
 
-/* Generates a simple trajectory with two waypoints to move TIAGo's arm 
+// Generates a simple trajectory with two waypoints to move TIAGo's arm 
 void waypoints_arm_goal1(control_msgs::FollowJointTrajectoryGoal& goal)
 {
   // The joint names, which apply to all waypoints
@@ -251,7 +251,7 @@ void waypoints_head_goal(control_msgs::FollowJointTrajectoryGoal& goal)
   
   // To be reached 2 second after starting along the trajectory
   goal.trajectory.points[index].time_from_start = ros::Duration(3.0);
-}*/
+}
 
 //gripper 
 void waypoints_gripper_goal(control_msgs::FollowJointTrajectoryGoal& goal)
@@ -306,7 +306,7 @@ void waypoints_gripper_goal2(control_msgs::FollowJointTrajectoryGoal& goal)
 
 void grabbingPosition() 
 {
-    /* step 1 : ARM 
+    //step 1 : ARM 
     // Create an arm controller action client to move the TIAGo's arm
     arm_control_client_Ptr ArmClient;
     createArmClient(ArmClient);
@@ -379,7 +379,7 @@ void grabbingPosition()
     while(!(TorsoClient->getState().isDone()) && ros::ok())
     {
         ros::Duration(1).sleep(); // sleep for four seconds
-    }*/
+    }
     
     // step 6: gripper 
     // Create an gripper controller action 
@@ -396,10 +396,26 @@ void grabbingPosition()
     {
         ros::Duration(1).sleep(); // sleep for four seconds
     }
+    
+    // step 2: TORSO raise torso again 
+    // Create an torso controller action 
+    createTorsoClient(TorsoClient);
+    // Generates the goal for the TIAGo's arm
+    control_msgs::FollowJointTrajectoryGoal torso_goal3;
+    waypoints_torso_goal1(torso_goal3);
+    // Sends the command to start the given trajectory 1s from now
+    torso_goal3.trajectory.header.stamp = ros::Time::now() + ros::Duration(1.0);
+    TorsoClient->sendGoal(torso_goal3);
+    // Wait for trajectory execution
+    while(!(TorsoClient->getState().isDone()) && ros::ok())
+    {
+        ros::Duration(1).sleep(); // sleep for four seconds
+    }
+
     // step 7: gripper RELEAAAAAAASE ME  
     // Create an gripper controller action 
     //gripper_control_client_Ptr GripperClient;
-    //createGripperClient(GripperClient);
+    createGripperClient(GripperClient);
     // Generates the goal for the TIAGo's arm
     control_msgs::FollowJointTrajectoryGoal gripper_goal2;
     waypoints_gripper_goal2(gripper_goal2);
