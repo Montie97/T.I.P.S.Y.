@@ -17,6 +17,14 @@
 #include <string>
 #include <list>
 
+// File utilities
+#include <iostream>
+#include <fstream>
+using std::cout; using std::ofstream;
+using std::endl; using std::string;
+using std::cerr;
+using std::fstream;
+
 #define HIGH_TORSO 0.35
 #define MID_TORSO 0.2
 #define LOW_TORSO 0.0
@@ -27,7 +35,15 @@
 #define ARM_FRONT 1.57
 #define ARM_SIDE 0.0
 
+#define DRINKS_MEMORY 10
+
 ros::Time last_timestamp;
+
+typedef struct drink_struct{
+    char name[10];
+    float x;
+    float y;
+} drink;
 
 /*** ARM ***/
 
@@ -336,7 +352,7 @@ void eyes_on_the_prize()
     }
 }
 
-/*** MOVEMENT ***/
+/*** MOVEMENT AND DETECTION ***/
 
 void move_to_goal(tipsy::Coordinates coord, bool serving)
 {
@@ -378,35 +394,92 @@ void move_to_goal(tipsy::Coordinates coord, bool serving)
         ROS_INFO("Movement failed.");
 }
 
+drink detect_drink()
+{
+    // TODO: ARUCO MARKER DETECTION
+
+    drink detected_drink;
+    strcpy(detected_drink.name, "Shish");
+    detected_drink.x = 1.0;
+    detected_drink.y = 2.5;
+    return detected_drink;
+}
+
 /*** CALLBACK FUNCTION ***/
 void serve_drink(const tipsy::Coordinates::ConstPtr &p_coord) 
 {  
     tipsy::Coordinates coords;
     bool serving = true;
-    if(p_coord->timestamp > last_timestamp){
+    if(p_coord->serving && p_coord->timestamp > last_timestamp){
         last_timestamp = p_coord->timestamp;
         ROS_INFO("Entering callback function\n");
         raise_arm();
         move_to_goal(*p_coord, !serving);
-        eyes_on_the_prize();
         move_torso(HIGH_TORSO); 
         arm_grabbing_position(ARM_FRONT);
         move_torso(MID_TORSO);
         move_gripper(GRIPPER_CLOSED);
         arm_grabbing_position(ARM_SIDE);
-        // Move a little away from the table
-        //coords.x = p_coord->x;
-        //coords.y = p_coord->y + 0.5;
-        //move_to_goal(coords, serving);
         move_torso(LOW_TORSO);
         // Move to the serving table
         coords.x = 0.3;
-        coords.y = 0.5;
+        coords.y = 0.4;
         move_to_goal(coords, serving);
         move_torso(HIGH_TORSO);
         arm_grabbing_position(ARM_FRONT);
         move_torso(MID_TORSO);
         move_gripper(GRIPPER_OPEN);
+        move_torso(HIGH_TORSO);
+        arm_grabbing_position(ARM_SIDE);
+        // Move to the origin
+        coords.x = 0.0;
+        coords.y = 0.0;
+        move_to_goal(coords, serving);
+        move_torso(LOW_TORSO);
+    }
+    else if(!p_coord->serving && p_coord->timestamp > last_timestamp){
+        bool serving = true;
+        tipsy::Coordinates table_coord;
+        drink detected_drinks[DRINKS_MEMORY];
+        int saved_drinks = 0;
+
+        // Create the file for the coordinates
+        string filename("/home/user/catkin_ws/src/tipsy/txt/coordinates.txt");
+        fstream output_fstream;
+        output_fstream.open(filename, std::ios_base::out);
+        if (!output_fstream.is_open()) {
+            ROS_ERROR("Failed to open file\n");
+        }
+
+        raise_arm();
+
+        // Move to 1st table
+        table_coord.x = -0.68;
+        table_coord.y = -2.17;
+        move_to_goal(table_coord, !serving);
+        detected_drinks[saved_drinks++] = detect_drink();
+
+        // Move to 2nd table
+        table_coord.y = -1.03;
+        move_to_goal(table_coord, !serving);
+        detected_drinks[saved_drinks++] = detect_drink();
+
+        // Move to 3rd table
+        table_coord.y = 1.17;
+        move_to_goal(table_coord, !serving);
+        detected_drinks[saved_drinks++] = detect_drink();
+
+        // Move to 4th table
+        table_coord.y = 2.13;
+        move_to_goal(table_coord, !serving);
+        detected_drinks[saved_drinks++] = detect_drink();
+
+        // Write coordinates into file
+        for(int i=0; i<saved_drinks; i++){
+            output_fstream << detected_drinks[i].name << " ";
+            output_fstream << std::to_string(detected_drinks[i].x) << " ";
+            output_fstream << std::to_string(detected_drinks[i].y) << endl;
+        }
     }
 }
 
@@ -416,11 +489,11 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::Rate loop_rate(1);
 
-    last_timestamp = ros::Time::now();
+    eyes_on_the_prize();
 
+    last_timestamp = ros::Time::now();
     ros::Subscriber sub = n.subscribe("coordinates_topic", 1, serve_drink);
     ros::spin();
-    //loop_rate.sleep();
 
     return 0;
 }

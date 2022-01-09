@@ -1,3 +1,4 @@
 float64 x
 float64 y
 time timestamp
+bool serving
