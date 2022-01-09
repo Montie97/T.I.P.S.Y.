@@ -5,8 +5,7 @@
 - roscd tiago_gazebo/models
 - grep -RiIl 'sdf' | xargs sed -i 's/package/model/g'
 ### Running the whole thing (one terminal per instruction)
-- roslaunch tipsy tipsy_launch.launch (rosprolog service and spawning Tiago into the world with the map)
-- rosrun tipsy motion_node (launching the motion node)
+- roslaunch tipsy tipsy_launch.launch (rosprolog service, spawning Tiago into the world with the map and motion node)
 - rosrun tipsy table_to_coordinates (launching the node that asks for drinks and provides coordinates)
 - rostopic echo /coordinates_topic (if you want to listen to the topic)
 ### Opening the world
