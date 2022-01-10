@@ -7,13 +7,13 @@
 
 #define PUBLISH_ITERATIONS 5
 
-#define TABLE_1_X -0.68
-#define TABLE_1_Y -2.17
+#define TABLE_1_X -0.69
+#define TABLE_1_Y -2.05
 #define TABLE_2_X -0.68
 #define TABLE_2_Y -1.03
-#define TABLE_3_X -0.68
-#define TABLE_3_Y 1.17
-#define TABLE_4_X -0.68
+#define TABLE_3_X -0.66
+#define TABLE_3_Y 1.12
+#define TABLE_4_X -0.71
 #define TABLE_4_Y 2.13
 
 int main(int argc, char **argv) {
@@ -76,7 +76,6 @@ int main(int argc, char **argv) {
         }
     }
     else if(strcmp(argv[1], "learning") == 0){
-
         // Table 1
         coordinate.x = TABLE_1_X;
         coordinate.y = TABLE_1_Y;

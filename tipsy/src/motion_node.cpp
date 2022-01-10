@@ -8,6 +8,8 @@
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <ros/topic.h>
 #include <std_msgs/String.h>
+#include <aruco_msgs/MarkerArray.h>
+#include <geometry_msgs/PoseWithCovariance.h>
 
 // Boost headers
 #include <boost/shared_ptr.hpp>
@@ -405,7 +407,15 @@ drink detect_drink()
     return detected_drink;
 }
 
-/*** CALLBACK FUNCTION ***/
+/*** ARUCO MARKER'S CALLBACK FUNCTION ***/
+void marker_detection(const aruco_msgs::MarkerArray::ConstPtr &p_marker)
+{
+    ROS_INFO("AAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAA\n");
+    ros::Subscriber marker_sub = n.subscribe("aruco_marker_publisher/markers", 10, marker_detection);
+    ros::spinOnce();
+}
+
+/*** COORDINATES' CALLBACK FUNCTION ***/
 void serve_drink(const tipsy::Coordinates::ConstPtr &p_coord) 
 {  
     tipsy::Coordinates coords;
