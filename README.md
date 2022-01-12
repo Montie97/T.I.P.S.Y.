@@ -10,6 +10,5 @@ Lorenzo Montalto
 
 # Running the whole system (one terminal per instruction)
 
-> roslaunch tipsy tipsy_launch.launch
-> rosrun tipsy table_to_coordinates
-    
+1) roslaunch tipsy tipsy_launch.launch
+2) rosrun tipsy table_to_coordinates
